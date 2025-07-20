@@ -1,0 +1,92 @@
+
+/* standard C includes */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* Oracle Pro*C includes from $ORACLE_HOME/precomp/public */
+#include <sqlca.h>
+#include <sqlda.h>
+#include <sqlcpr.h>
+
+
+/* my variables */
+varchar     MYinstanceName[16];
+varchar     MYhostName[64];
+varchar     MYversion[17];
+varchar     MYstatus[12];
+varchar     MYinstanceStartupTime[18];
+varchar     MYdbName[128];
+varchar     MYdbOpenMode[10];
+varchar     MYdbOpenTime[32];
+
+
+
+/* function for error handling */
+void sql_error(msg)
+    char msg[200];
+{
+    char err_msg[128];
+    size_t buf_len, msg_len;
+
+    EXEC SQL WHENEVER SQLERROR CONTINUE;
+
+    printf("\n%s\n", msg);
+    buf_len = sizeof (err_msg);
+    sqlglm(err_msg, &buf_len, &msg_len);
+    printf("%.*s\n", msg_len, err_msg);
+
+    EXEC SQL ROLLBACK RELEASE;
+    exit(EXIT_FAILURE);
+}
+
+
+/* MAIIN program */
+int main(argc,argv)
+   int   argc;
+   char *argv[];
+{
+
+/* read Connection String from environment -- or, it could have been hardcoded here */
+   const char *conn = getenv("CNCTSTRING");
+      if (!conn) {
+        printf("! require CNCTSTRING env variable\n");
+        return (1);
+      }
+
+    EXEC SQL WHENEVER SQLERROR DO sql_error("ORACLE error--\n");
+
+/* connect to targe database */
+    EXEC SQL CONNECT :conn ;
+    printf("Connected to ORACLE \n");
+
+
+/* execute query and populate variables */
+/* NOTE : This expects to connect to a PDB ! */
+/* If the target is a Non-PDB, change references from v$pdbs to V$database */
+    EXEC SQL SELECT  instance_name,host_name, version,
+                     to_char(startup_time,'DD-MON-RR HH24:MI:SS'), status,
+                     name, open_mode, to_char(open_time)
+             INTO    :MYinstanceName, :MYhostName, :MYversion,
+                     :MYinstanceStartupTime, :MYstatus,
+                     :MYdbName, :MYdbOpenMode, :MYdbOpenTime
+             FROM    v$instance, v$pdbs ;
+
+
+/* display query results */
+printf("At %s which is on %s  running %s and is %s, started at %s \n",
+        MYinstanceName.arr, MYhostName.arr, MYversion.arr, MYstatus.arr, MYinstanceStartupTime.arr);
+printf("This is %s database running in %s mode since %s \n",
+        MYdbName.arr, MYdbOpenMode.arr, MYdbOpenTime.arr);
+printf("\n");
+
+/* end of MAIN */
+}
+
+
+/* 
+
+proc INCLUDE=/usr/include/oracle/19.26/client64/ main.pc 
+gcc -g main.c -I /usr/include/oracle/19.26/client64 -L /usr/lib/oracle/19.26/client64/lib -l clntsh
+
+*/ 

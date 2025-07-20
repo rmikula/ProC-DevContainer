@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "string.h": "c",
+        "sqlda.h": "c",
+        "sqlca.h": "c"
+    }
+}
