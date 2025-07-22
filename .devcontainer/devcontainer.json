@@ -1,6 +1,6 @@
 {
    "name": "Oracle with proc",
-   "image": "ora-client-proc:latest",
+   "image": "docker.io/rmikula74/ora-client-proc:latest",
    // "build": { "dockerfile": "" } 
    "customizations": {
       "vscode": {
